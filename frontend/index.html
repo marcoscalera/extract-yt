@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YT Extrator Pro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #121212; color: #e0e0e0; }
+        .card { background-color: #1e1e1e; border: none; border-radius: 15px; }
+        .btn-primary { background-color: #ff0000; border: none; }
+        .btn-primary:hover { background-color: #cc0000; }
+        #videoThumbnail { border-radius: 10px; max-width: 100%; height: auto; }
+        pre { white-space: pre-wrap; word-wrap: break-word; color: #aaa; background: #252525; padding: 15px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="text-center mb-5">
+            <h1 class="display-4 fw-bold text-white">YT <span class="text-danger">Pro</span> Extractor</h1>
+            <p class="lead">Extraia áudio e descrições com automação Ansible</p>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card p-4 shadow">
+                    <div class="input-group mb-3">
+                        <input type="text" id="videoUrl" class="form-control form-control-lg bg-dark text-white border-secondary" placeholder="Cole a URL do vídeo do YouTube">
+                        <button class="btn btn-primary px-4" onclick="extrair()">Extrair</button>
+                    </div>
+
+                    <div id="loading" class="text-center d-none my-4">
+                        <div class="spinner-border text-danger" role="status"></div>
+                    </div>
+
+                    <div id="resultado" class="d-none mt-4">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <img id="videoThumbnail" src="" alt="Thumbnail">
+                            </div>
+                            <div class="col-md-8">
+                                <h3 id="videoTitle" class="text-white"></h3>
+                                <p id="videoInfo" class="text-secondary"></p>
+                                <a id="downloadAudio" href="" class="btn btn-outline-success btn-sm" target="_blank">Ouvir/Baixar Áudio MP3</a>
+                            </div>
+                        </div>
+                        <h5 class="mt-4">Descrição:</h5>
+                        <pre id="videoDescription"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function extrair() {
+            const url = document.getElementById('videoUrl').value;
+            if(!url) return alert("Cole uma URL!");
+
+            document.getElementById('loading').classList.remove('d-none');
+            document.getElementById('resultado').classList.add('d-none');
+
+            try {
+                const response = await fetch('http://localhost:5000/extrair', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                const data = await response.json();
+                
+                document.getElementById('videoThumbnail').src = data.miniatura;
+                document.getElementById('videoTitle').innerText = data.titulo;
+                document.getElementById('videoInfo').innerText = `Canal: ${data.canal} | Duração: ${data.duracao}`;
+                document.getElementById('downloadAudio').href = data.link_audio;
+                document.getElementById('videoDescription').innerText = data.descricao;
+                
+                document.getElementById('resultado').classList.remove('d-none');
+            } catch (err) {
+                alert("Erro ao conectar com o servidor.");
+            } finally {
+                document.getElementById('loading').classList.add('d-none');
+            }
+        }
+    </script>
+</body>
+</html>

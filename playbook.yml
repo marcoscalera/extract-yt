@@ -1,0 +1,64 @@
+---
+- name: Deploy do Extrator YT
+  hosts: localhost
+  connection: local
+  vars:
+    project_path: "/home/marcos/extrator-youtube"
+    user_name: "marcos"
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+    - name: 1. Instalar dependências do sistema (incluindo FFmpeg para áudio)
+      apt:
+        name: 
+          - python3-pip
+          - python3-venv
+          - ffmpeg    
+          - curl      
+        state: present
+        update_cache: yes
+      become: true
+
+    - name: 2. Garantir que a pasta de downloads existe e tem permissão
+      file:
+        path: "{{ project_path }}/downloads"
+        state: directory
+        owner: "{{ user_name }}"
+        mode: '0755'
+
+    - name: 3. Configurar ambiente virtual e pacotes Python
+      pip:
+        name: 
+          - flask
+          - flask-cors
+          - yt-dlp
+        virtualenv: "{{ project_path }}/venv"
+        virtualenv_command: python3 -m venv
+
+    - name: 4. Criar o arquivo de serviço (Systemd) de forma dinâmica
+      copy:
+        dest: /etc/systemd/system/extrator.service
+        content: |
+          [Unit]
+          Description=API Extrator Pro
+          After=network.target
+
+          [Service]
+          User={{ user_name }}
+          WorkingDirectory={{ project_path }}
+          ExecStart={{ project_path }}/venv/bin/python {{ project_path }}/backend/app.py
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+      become: true
+      register: service_config 
+
+    - name: 5. Recarregar e reiniciar o serviço se o arquivo mudou
+      systemd:
+        name: extrator
+        state: restarted
+        enabled: yes
+        daemon_reload: yes
+      become: true
+      when: service_config.changed 
